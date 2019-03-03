@@ -1,4 +1,5 @@
 from roblox import ROBLOXClient
+from pprint import pprint
 from pypresence import Presence, Client
 import asyncio
 import browser_cookie3 as bc
@@ -50,17 +51,17 @@ async def RPCLoop():
         await asyncio.sleep(0.5)
 
 def SetActivity(gameName, placeId, gameId):
-    print(placeId, gameId)
-    RPC.set_activity({
-        "state":gameName,
-        "party": {
-            "id":str(partyId),
-            "size":[1,2],
-        },
-        "secrets": {
-            # "join":str(placeId) + "i" + str(gameId)
-        }
-    })
+    print(str(placeId) + "i" + str(gameId))
+    # RPC.set_activity({
+    #     "state":gameName,
+    #     "party": {
+    #         "id":str(partyId),
+    #         "size":[1,2],
+    #     },
+    #     "secrets": {
+    #         # "join": str(placeId) + "i" + str(gameId)
+    #     }
+    # })
     return
 
 async def ActivityLoop():
@@ -68,10 +69,11 @@ async def ActivityLoop():
     while True:
         print("Finding game")
         currentGame = client.GetCurrentGameInfo()
+        pprint(currentGame)
         if not currentGame or currentGame['userPresences'][0]['userPresenceType'] != 2:
             # RPC.close()
             partyId = None
-            await asyncio.sleep(30)
+            await asyncio.sleep(10)
             continue
 
         currentGame = currentGame['userPresences'][0]
@@ -79,7 +81,7 @@ async def ActivityLoop():
         print("Setting activity!")
         SetActivity(str(currentGame['lastLocation']), currentGame['placeId'], currentGame['gameId'])
 
-        await asyncio.sleep(30)
+        await asyncio.sleep(10)
 
 loop.run_until_complete(asyncio.gather(RPCLoop(), ActivityLoop()))
 
