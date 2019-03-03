@@ -16,7 +16,7 @@ class ROBLOXClient:
 
     def GetLatestRobloxExe(self):
         reg = winreg.ConnectRegistry(None, winreg.HKEY_CLASSES_ROOT)
-        key = winreg.OpenKey(reg, "\\roblox-player\\DefaultIcon")
+        key = winreg.OpenKey(reg, "roblox-player\\DefaultIcon")
         location = winreg.QueryValue(key, '').replace('RobloxPlayerLauncher', 'RobloxPlayerBeta')
         winreg.CloseKey(key)
         return location

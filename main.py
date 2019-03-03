@@ -11,7 +11,7 @@ import uuid
 
 #Init everything
 partyId = None
-maxTrials = 2
+maxTrials = 7
 
 # RPC.send({'cmd':'SUBSCRIBE', 'evt':'ACTIVITY_JOIN', 'nonce':str(uuid.uuid4())})
 # RPC.send({'cmd':'SUBSCRIBE', 'evt':'ACTIVITY_JOIN_REQUEST', 'nonce':str(uuid.uuid4())})
@@ -28,7 +28,7 @@ def JoinRequest(data):
     contents = data['secret']
     placeId = re.search("(\d+)i", contents).group(1)
     serverId = re.search("i(.+)", contents).group(1)
-
+    print("Joining %s in Server %s" % (placeId, serverId))
     client.JoinGame(gameId = placeId, serverId=serverId)
 
     for i in range(maxTrials):
@@ -38,22 +38,24 @@ def JoinRequest(data):
             RPC.set_activity(state=currentGame['lastLocation'], party_id=str(currentGame['placeId']), party_size=[1,20], join=str(currentGame['placeId']) + "i" + str(currentGame['gameId']))
         time.sleep(3)
     partyId = placeId
+    return
 
-def ConsentJoin(data):
-    userId = data['user']['id']
-    RPC.send_activity_join_invite(userId)
+# def ConsentJoin(data):
+#     userId = data['user']['id']
+#     RPC.send_activity_join_invite(userId)
 
 RPC.register_event('ACTIVITY_JOIN', JoinRequest)
-RPC.register_event('ACTIVITY_JOIN_REQUEST', ConsentJoin)
+# RPC.register_event('ACTIVITY_JOIN_REQUEST', ConsentJoin)
 RPC.handshake()
 
 while True:
     print("Finding game")
     currentGame = client.GetCurrentGameInfo()
+    pprint(currentGame)
     if not currentGame or currentGame['userPresences'][0]['userPresenceType'] != 2:
         RPC.clear_activity()
         partyId = None
-        time.sleep(20)
+        time.sleep(10)
         continue
 
     currentGame = currentGame['userPresences'][0]
