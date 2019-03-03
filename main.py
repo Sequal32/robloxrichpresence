@@ -1,86 +1,63 @@
 from concurrent.futures import ThreadPoolExecutor
 from roblox import ROBLOXClient
 from pprint import pprint
-from pypresence import Presence, Client
+from pypresence import Client
 import asyncio
 import browser_cookie3 as bc
 import time
 import random
 import re
-import rpc
 import uuid
 
+#Init everything
 partyId = None
 maxTrials = 2
 
-RPC = rpc.DiscordIpcClient.for_platform('541669343805833216')
-RPC.send({'cmd':'SUBSCRIBE', 'evt':'ACTIVITY_JOIN', 'nonce':str(uuid.uuid4())})
-RPC.send({'cmd':'SUBSCRIBE', 'evt':'ACTIVITY_JOIN_REQUEST', 'nonce':str(uuid.uuid4())})
+# RPC.send({'cmd':'SUBSCRIBE', 'evt':'ACTIVITY_JOIN', 'nonce':str(uuid.uuid4())})
+# RPC.send({'cmd':'SUBSCRIBE', 'evt':'ACTIVITY_JOIN_REQUEST', 'nonce':str(uuid.uuid4())})
 client = ROBLOXClient(cookie=bc.chrome(domain_name=".roblox.com"))
 
 loop = asyncio.get_event_loop()
 _executor = ThreadPoolExecutor(1)
 
-async def RPCLoop():
+RPC = Client('541669343805833216')
+RPC.start()
+
+def JoinRequest(data):
     global partyId
-    while True:
-        print("Getting message")
-        message = await loop.run_in_executor(_executor, RPC.recv)
-        message = message[1]
+    contents = data['secret']
+    placeId = re.search("(\d+)i", contents).group(1)
+    serverId = re.search("i(.+)", contents).group(1)
 
-        if message['cmd'] != "DISPATCH":
-            await asyncio.sleep(0.5)
-            continue
+    client.JoinGame(gameId = placeId, serverId=serverId)
 
-        if message['evt'] == 'ACTIVITY_JOIN':
-            contents = message['data']['secret']
-            placeId = re.search("(\d+)i", contents).group(1)
-            serverId = re.search("i(.+)", contents).group(1)
+    for i in range(maxTrials):
+        print("CHECK")
+        if client.IsRobloxRunning():
+            currentGame = client.GetCurrentGameInfo()
+            RPC.set_activity(state=currentGame['lastLocation'], party_id=str(currentGame['placeId']), party_size=[1,20], join=str(currentGame['placeId']) + "i" + str(currentGame['gameId']))
+        time.sleep(3)
+    partyId = placeId
 
-            client.JoinGame(gameId = placeId, serverId=serverId)
+def ConsentJoin(data):
+    userId = data['user']['id']
+    RPC.send_activity_join_invite(userId)
 
-            for i in range(maxTrials):
-                print("CHECK")
-                if client.IsRobloxRunning():
-                    currentGame = client.GetCurrentGameInfo()
-                    SetActivity(str(currentGame['lastLocation']), currentGame['placeId'], currentGame['gameId'])
-                    await asyncio.sleep(3)
-            partyId = placeId
-        elif message['evt'] == 'ACTIVITY_JOIN_REQUEST':
-            userId = message['data']['user']['id']
-            RPC.send({'nonce':str(uuid.uuid4()), 'cmd':'SEND_ACTIVITY_JOIN_INVITE', 'args':{'user_id':userId}})
+RPC.register_event('ACTIVITY_JOIN', JoinRequest)
+RPC.register_event('ACTIVITY_JOIN_REQUEST', ConsentJoin)
+RPC.handshake()
 
-def SetActivity(gameName, placeId, gameId):
-    RPC.set_activity({
-        "state":gameName,
-        "party": {
-            "id":str(partyId),
-            "size":[1,2],
-        },
-        "secrets": {
-            "join": str(placeId) + "i" + str(gameId)
-        }
-    })
-    return
+while True:
+    print("Finding game")
+    currentGame = client.GetCurrentGameInfo()
+    if not currentGame or currentGame['userPresences'][0]['userPresenceType'] != 2:
+        RPC.clear_activity()
+        partyId = None
+        time.sleep(20)
+        continue
 
-async def ActivityLoop():
-    global partyId
-    while True:
-        print("Finding game")
-        currentGame = client.GetCurrentGameInfo()
-        if not currentGame or currentGame['userPresences'][0]['userPresenceType'] != 2:
-            # RPC.close()
-            partyId = None
-            await asyncio.sleep(20)
-            continue
+    currentGame = currentGame['userPresences'][0]
+    partyId = random.randint(0, 100000) if (currentGame['placeId'] == None and not partyId) else currentGame['placeId']
+    RPC.set_activity(state=currentGame['lastLocation'], party_id=str(currentGame['placeId']), party_size=[1,20], join=str(currentGame['placeId']) + "i" + str(currentGame['gameId']))
 
-        currentGame = currentGame['userPresences'][0]
-        partyId = random.randint(0, 100000) if (currentGame['placeId'] == None and not partyId) else currentGame['placeId']
-        print("Setting activity!")
-        SetActivity(str(currentGame['lastLocation']), currentGame['placeId'], currentGame['gameId'])
-
-        await asyncio.sleep(20)
-
-loop.run_until_complete(asyncio.gather(RPCLoop(), ActivityLoop()))
-
-# client.JoinGame(gameUrl="https://www.roblox.com/games/261290060/Terminal-Railways#!/game-instances", serverId="3d6e5b16-bf89-49bc-b97e-411e8cc6abc7")
+    time.sleep(10)
