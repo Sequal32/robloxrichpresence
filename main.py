@@ -20,7 +20,7 @@ client = ROBLOXClient(cookie=bc.chrome(domain_name=".roblox.com"))
 loop = asyncio.get_event_loop()
 _executor = ThreadPoolExecutor(1)
 
-RPC = Client('541669343805833216')
+RPC = Client('541669343805833216', pipe=0)
 RPC.start()
 
 def JoinRequest(data):
@@ -31,12 +31,13 @@ def JoinRequest(data):
     print("Joining %s in Server %s" % (placeId, serverId))
     client.JoinGame(gameId = placeId, serverId=serverId)
 
-    for i in range(maxTrials):
-        print("CHECK")
-        if client.IsRobloxRunning():
-            currentGame = client.GetCurrentGameInfo()
-            RPC.set_activity(state=currentGame['lastLocation'], party_id=str(currentGame['placeId']), party_size=[1,20], join=str(currentGame['placeId']) + "i" + str(currentGame['gameId']))
-        time.sleep(3)
+    # for i in range(maxTrials):
+    #     print("CHECK")
+    #     if client.IsRobloxRunning():
+    #         currentGame = client.GetCurrentGameInfo()
+    #         RPC.set_activity(state=currentGame['lastLocation'], party_id=str(currentGame['placeId']), party_size=[1,20], join=str(currentGame['placeId']) + "i" + str(currentGame['gameId']))
+    #         break
+    #     time.sleep(3)
     partyId = placeId
     return
 
@@ -48,19 +49,24 @@ RPC.register_event('ACTIVITY_JOIN', JoinRequest)
 RPC.register_event('ACTIVITY_JOIN_REQUEST', ConsentJoin)
 RPC.handshake()
 
-while True:
-    currentGame = client.GetCurrentGameInfo()
-    pprint(currentGame)
-    if not currentGame or currentGame['userPresences'][0]['userPresenceType'] != 2:
-        print("Clearing activity")
-        RPC.clear_activity()
-        partyId = None
-        time.sleep(10)
-        continue
+async def ActivityLoop():
+    while True:
+        currentGame = client.GetCurrentGameInfo()
+        pprint(currentGame)
+        if not currentGame or currentGame['userPresences'][0]['userPresenceType'] != 2:
+            print("Clearing activity")
+            RPC.clear_activity()
+            partyId = None
+            await asyncio.sleep(10)
+            continue
 
-    currentGame = currentGame['userPresences'][0]
-    partyId = random.randint(0, 100000) if (currentGame['placeId'] == None and not partyId) else currentGame['placeId']
-    print("Setting activity")
-    RPC.set_activity(state=currentGame['lastLocation'], party_id=str(currentGame['placeId']), party_size=[1,20], join=str(currentGame['placeId']) + "i" + str(currentGame['gameId']))
+        currentGame = currentGame['userPresences'][0]
+        partyId = random.randint(0, 100000) if (currentGame['placeId'] == None and not partyId) else currentGame['placeId']
+        print("Setting activity")
+        RPC.set_activity(state=currentGame['lastLocation'], party_id=str(currentGame['placeId']), party_size=[1,20], join=str(currentGame['placeId']) + "i" + str(currentGame['gameId']))
 
-    time.sleep(10)
+        await asyncio.sleep(10)
+
+# RPC.loop.run_until_complete(ActivityLoop())
+RPC.loop.create_task(ActivityLoop())
+RPC.loop.run_forever()
