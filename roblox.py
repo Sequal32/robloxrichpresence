@@ -5,6 +5,8 @@ import math
 import os
 import re
 import requests
+import shlex
+import subprocess
 import time
 import urllib
 import winreg
@@ -24,7 +26,7 @@ class ROBLOXClient:
     def JoinGame(self, gameUrl=None, gameId=None, serverId=None):
         gameId = gameId if gameId != None else re.search("\/games\/(\d+)", gameUrl).group(1)
         gameUrl = gameUrl if gameUrl != None else "https://www.roblox.com/games/" + gameId
-        append = "Job^&placeId=%s^&gameId=%s" % (gameId, serverId) if serverId != None else "^&placeId=" + str(gameId)
+        append = "Job&placeId=%s&gameId=%s" % (gameId, serverId) if serverId != None else "&placeId=" + str(gameId)
         
         headers = {"Connection":"keep-alive", "RBX-For-Gameauth":"true", "Referer":gameUrl, "Host":"www.roblox.com"}
         response = self.session.get("https://www.roblox.com/game-auth/getauthticket", headers=headers)
@@ -35,8 +37,8 @@ class ROBLOXClient:
 
         if response.status_code == 200:
             ticket = response.text
-            # os.system("\"" + self.robloxPath + "\" roblox-player:1+launchmode:play+gameinfo:" + ticket + "+launchtime=" + str(math.ceil(time.time())) + "+placelauncherurl:" + urllib.parse.quote("https://assetgame.roblox.com/game/PlaceLauncher.ashx?request=RequestGame" + append + "&isPlayTogetherGame=false") + "+robloxLocale:en_us+gameLocale:en_us")
-            os.system("\"" + self.robloxPath + "\" --play -a https://www.roblox.com/Login/Negotiate.ashx -t " + ticket + " -j " + "https://assetgame.roblox.com/game/PlaceLauncher.ashx?request=RequestGame" + append + "^&isPlayTogetherGame=false" + " --launchtime=" + str(math.ceil(time.time())) + " --rloc en_us --gloc en_us")
+            subprocess.Popen(shlex.split("\"" + self.robloxPath + "\" --play -a https://www.roblox.com/Login/Negotiate.ashx -t " + ticket + " -j " + "https://assetgame.roblox.com/game/PlaceLauncher.ashx?request=RequestGame" + append + "&isPlayTogetherGame=false" + " --launchtime=" + str(math.ceil(time.time())) + " --rloc en_us --gloc en_us"))
+            # os.system("\"" + self.robloxPath + "\" --play -a https://www.roblox.com/Login/Negotiate.ashx -t " + ticket + " -j " + "https://assetgame.roblox.com/game/PlaceLauncher.ashx?request=RequestGame" + append + "^&isPlayTogetherGame=false" + " --launchtime=" + str(math.ceil(time.time())) + " --rloc en_us --gloc en_us")
             self.session.post("https://www.roblox.com/game/increment-play-count", headers=headers)
             self.session.post("https://assetgame.roblox.com/game/report-event?name=GameLaunchSuccessWeb_Win32", headers=headers)
             self.session.post("https://assetgame.roblox.com/game/report-event?name=GameLaunchSuccessWeb_Win32_Protocol", headers=headers)
