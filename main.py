@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from roblox import ROBLOXClient
 from pprint import pprint
 from pypresence import Presence, Client
@@ -18,12 +19,14 @@ RPC.send({'cmd':'SUBSCRIBE', 'evt':'ACTIVITY_JOIN_REQUEST', 'nonce':str(uuid.uui
 client = ROBLOXClient(cookie=bc.chrome(domain_name=".roblox.com"))
 
 loop = asyncio.get_event_loop()
+_executor = ThreadPoolExecutor(1)
 
 async def RPCLoop():
     global partyId
     while True:
         print("Getting message")
-        message = await RPC.recvdata()
+        message = await loop.run_in_executor(_executor, RPC.recv)
+        message = message[1]
 
         if message['cmd'] != "DISPATCH":
             await asyncio.sleep(0.5)
@@ -47,21 +50,17 @@ async def RPCLoop():
             userId = message['data']['user']['id']
             RPC.send({'nonce':str(uuid.uuid4()), 'cmd':'SEND_ACTIVITY_JOIN_INVITE', 'args':{'user_id':userId}})
 
-
-        await asyncio.sleep(0.5)
-
 def SetActivity(gameName, placeId, gameId):
-    print(str(placeId) + "i" + str(gameId))
-    # RPC.set_activity({
-    #     "state":gameName,
-    #     "party": {
-    #         "id":str(partyId),
-    #         "size":[1,2],
-    #     },
-    #     "secrets": {
-    #         # "join": str(placeId) + "i" + str(gameId)
-    #     }
-    # })
+    RPC.set_activity({
+        "state":gameName,
+        "party": {
+            "id":str(partyId),
+            "size":[1,2],
+        },
+        "secrets": {
+            "join": str(placeId) + "i" + str(gameId)
+        }
+    })
     return
 
 async def ActivityLoop():
@@ -69,11 +68,10 @@ async def ActivityLoop():
     while True:
         print("Finding game")
         currentGame = client.GetCurrentGameInfo()
-        pprint(currentGame)
         if not currentGame or currentGame['userPresences'][0]['userPresenceType'] != 2:
             # RPC.close()
             partyId = None
-            await asyncio.sleep(10)
+            await asyncio.sleep(20)
             continue
 
         currentGame = currentGame['userPresences'][0]
@@ -81,7 +79,7 @@ async def ActivityLoop():
         print("Setting activity!")
         SetActivity(str(currentGame['lastLocation']), currentGame['placeId'], currentGame['gameId'])
 
-        await asyncio.sleep(10)
+        await asyncio.sleep(20)
 
 loop.run_until_complete(asyncio.gather(RPCLoop(), ActivityLoop()))
 

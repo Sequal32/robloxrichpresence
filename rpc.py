@@ -6,7 +6,6 @@
 # * https://discordapp.com/developers/docs/rich-presence/how-to#updating-presence-update-presence-payload-fields
 
 from abc import ABCMeta, abstractmethod
-import asyncio
 import json
 import logging
 import os
@@ -127,17 +126,6 @@ class DiscordIpcClient(metaclass=ABCMeta):
         data = json.loads(payload.decode('utf-8'))
         logger.debug("received %s", data)
         return op, data
-
-    async def recvdata(self) -> (int, "JSON"):
-        """Receives a packet from discord.
-
-        Returns op code and payload.
-        """
-        op, length = self._recv_header()
-        payload = self._recv_exactly(length)
-        data = json.loads(payload.decode('utf-8'))
-        logger.debug("received %s", data)
-        return data
 
     def set_activity(self, act):
         # act
