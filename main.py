@@ -40,19 +40,19 @@ def JoinRequest(data):
     partyId = placeId
     return
 
-# def ConsentJoin(data):
-#     userId = data['user']['id']
-#     RPC.send_activity_join_invite(userId)
+def ConsentJoin(data):
+    userId = data['user']['id']
+    RPC.send_activity_join_invite(userId)
 
 RPC.register_event('ACTIVITY_JOIN', JoinRequest)
-# RPC.register_event('ACTIVITY_JOIN_REQUEST', ConsentJoin)
+RPC.register_event('ACTIVITY_JOIN_REQUEST', ConsentJoin)
 RPC.handshake()
 
 while True:
-    print("Finding game")
     currentGame = client.GetCurrentGameInfo()
     pprint(currentGame)
     if not currentGame or currentGame['userPresences'][0]['userPresenceType'] != 2:
+        print("Clearing activity")
         RPC.clear_activity()
         partyId = None
         time.sleep(10)
@@ -60,6 +60,7 @@ while True:
 
     currentGame = currentGame['userPresences'][0]
     partyId = random.randint(0, 100000) if (currentGame['placeId'] == None and not partyId) else currentGame['placeId']
+    print("Setting activity")
     RPC.set_activity(state=currentGame['lastLocation'], party_id=str(currentGame['placeId']), party_size=[1,20], join=str(currentGame['placeId']) + "i" + str(currentGame['gameId']))
 
     time.sleep(10)
