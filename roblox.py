@@ -113,18 +113,20 @@ class ROBLOXClient:
         self.session = requests.Session()
         self.session.headers.update({'User-Agent':"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36"})
         self.robloxPath = self.GetLatestRobloxExe()
+
+        if useBrowserCookie and not cookie:
+            useBrowserCookie = useBrowserCookie.lower()
+            if useBrowserCookie == "chrome":
+                cookie = bc.chrome(domain_name=".roblox.com")
+            elif useBrowserCookie == "firefox":
+                cookie = cookie=bc.firefox(domain_name=".roblox.com")
+            else:
+                cookie = cookie=bc.load(domain_name=".roblox.com")
+
         if cookie:
             self.session.cookies = cookie
             request = self.session.get("https://assetgame.roblox.com/Game/GetCurrentUser.ashx")
             self.userId = request.text
-        elif useBrowserCookie:
-            useBrowserCookie = useBrowserCookie.lower()
-            if useBrowserCookie == "chrome":
-                client = ROBLOXClient(cookie=bc.chrome(domain_name=".roblox.com"))
-            elif useBrowserCookie == "firefox":
-                client = ROBLOXClient(cookie=bc.firefox(domain_name=".roblox.com"))
-            else:
-                client = ROBLOXClient(cookie=bc.load(domain_name=".roblox.com"))
         elif username and password:
             self.login(username, password)
 

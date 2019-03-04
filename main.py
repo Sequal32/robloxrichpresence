@@ -15,7 +15,7 @@ maxTrials = 7
 
 # RPC.send({'cmd':'SUBSCRIBE', 'evt':'ACTIVITY_JOIN', 'nonce':str(uuid.uuid4())})
 # RPC.send({'cmd':'SUBSCRIBE', 'evt':'ACTIVITY_JOIN_REQUEST', 'nonce':str(uuid.uuid4())})
-client = ROBLOXClient(cookie=bc.chrome(domain_name=".roblox.com"))
+client = ROBLOXClient(useBrowserCookie=input("What browser do you use for ROBLOX? "))
 
 loop = asyncio.get_event_loop()
 _executor = ThreadPoolExecutor(1)
