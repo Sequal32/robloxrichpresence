@@ -14,7 +14,7 @@ from pprint import pprint
 
 JSONDecoder = json.JSONDecoder()
 
-class ROBLOXClient:
+class ROBLOXClient:    
 
     def GetLatestRobloxExe(self):
         reg = winreg.ConnectRegistry(None, winreg.HKEY_CLASSES_ROOT)
@@ -106,7 +106,7 @@ class ROBLOXClient:
             return False
         return presenceRequest.json()
 
-    def __init__(self, cookie=None, username=None, password=None, useBrowserCookie=None):
+    def __init__(self, cookie=None, username=None, password=None, useBrowserCookie=None, requireUserId=True):
         self.token = None
         self.processes = Processes()
 
@@ -125,10 +125,14 @@ class ROBLOXClient:
 
         if cookie:
             self.session.cookies = cookie
-            request = self.session.get("https://assetgame.roblox.com/Game/GetCurrentUser.ashx")
-            self.userId = request.text
+            if requireUserId:
+                request = self.session.get("https://assetgame.roblox.com/Game/GetCurrentUser.ashx")
+                self.userId = request.text
         elif username and password:
             self.login(username, password)
+
+    def GetRequest(self, url):
+        return self.session.get(url)
 
 class Processes:
     def __init__(self):
